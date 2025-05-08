@@ -1,0 +1,308 @@
+import { createApp } from 'vue';
+import { config } from './config.js';
+
+const app = createApp({
+    data() {
+        return {
+            sidebarVisible: true,
+            currentDate: new Date(),
+            selectedDate: new Date(),
+            selectedActivity: null,
+            selectedProject: null,
+            showModal: false,
+            timerRunning: false,
+            timerStart: null,
+            elapsedTime: 0,
+            timerInterval: null,
+            currentActivity: {
+                description: '',
+                projectId: '',
+                startTime: null,
+                endTime: null,
+                duration: 0
+            },
+            activities: [
+                {
+                    id: 1,
+                    description: 'Client Meeting',
+                    projectId: 1,
+                    date: new Date().toISOString().split('T')[0],
+                    startTime: new Date(new Date().setHours(9, 0, 0, 0)),
+                    endTime: new Date(new Date().setHours(10, 0, 0, 0)),
+                    duration: 3600000 // 1 hour in milliseconds
+                },
+                {
+                    id: 2,
+                    description: 'Website Development',
+                    projectId: 2,
+                    date: new Date().toISOString().split('T')[0],
+                    startTime: new Date(new Date().setHours(13, 0, 0, 0)),
+                    endTime: new Date(new Date().setHours(15, 30, 0, 0)),
+                    duration: 9000000 // 2.5 hours in milliseconds
+                },
+                {
+                    id: 3,
+                    description: 'Research',
+                    projectId: 3,
+                    date: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
+                    startTime: new Date(new Date(new Date().setDate(new Date().getDate() + 1)).setHours(10, 0, 0, 0)),
+                    endTime: new Date(new Date(new Date().setDate(new Date().getDate() + 1)).setHours(12, 0, 0, 0)),
+                    duration: 7200000 // 2 hours in milliseconds
+                }
+            ],
+            projects: [
+                { id: 1, name: 'Client Project A', color: '#4A90E2' },
+                { id: 2, name: 'Website Redesign', color: '#32CD32' },
+                { id: 3, name: 'Marketing Campaign', color: '#E74C3C' },
+                { id: 4, name: 'Internal Tools', color: '#9B59B6' }
+            ],
+            hours: Array.from(
+                { length: config.workingHours.end - config.workingHours.start + 1 },  
+                (_, i) => i + config.workingHours.start
+            )
+        };
+    },
+    computed: {
+        currentWeek() {
+            const week = [];
+            const date = new Date(this.currentDate);
+            
+            // Get to the start of the week (Sunday)
+            const day = date.getDay();
+            date.setDate(date.getDate() - day);
+            
+            // Add days for the week
+            for(let i = 0; i < config.daysToShow; i++) {
+                week.push(new Date(date));
+                date.setDate(date.getDate() + 1);
+            }
+            return week;
+        },
+        miniCalendarDays() {
+            const days = [];
+            const currentMonth = this.currentDate.getMonth();
+            const currentYear = this.currentDate.getFullYear();
+            
+            // Get first day of the month
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            // Get last day of the month
+            const lastDay = new Date(currentYear, currentMonth + 1, 0);
+            
+            // Get days from previous month to fill first week
+            let start = new Date(firstDay);
+            start.setDate(start.getDate() - start.getDay()); // Go back to Sunday
+            
+            // Generate 6 weeks of days
+            for (let week = 0; week < 6; week++) {
+                for (let day = 0; day < 7; day++) {
+                    const date = new Date(start);
+                    days.push({
+                        date: date,
+                        isCurrentMonth: date.getMonth() === currentMonth
+                    });
+                    start.setDate(start.getDate() + 1);
+                }
+            }
+            
+            return days;
+        },
+        currentWeekDisplay() {
+            const start = this.currentWeek[0];
+            const end = this.currentWeek[this.currentWeek.length - 1];
+            return `${start.toLocaleDateString('fr-FR')} - ${end.toLocaleDateString('fr-FR')}`;
+        },
+        currentMonthDisplay() {
+            return this.currentDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+        },
+        todayActivities() {
+            const today = new Date().toISOString().split('T')[0];
+            return this.activities
+                .filter(activity => activity.date === today)
+                .sort((a, b) => b.startTime - a.startTime);
+        },
+        hasActivities() {
+            return (date) => {
+                if (!date || !date.date) return false;
+                const dateString = date.date.toISOString().split('T')[0];
+                return this.activities.some(act => act.date === dateString);
+            };
+        }
+    },
+    methods: {
+        toggleSidebar() {
+            this.sidebarVisible = !this.sidebarVisible;
+        },
+        previousMonth() {
+            const date = new Date(this.currentDate);
+            date.setMonth(date.getMonth() - 1);
+            this.currentDate = date;
+        },
+        nextMonth() {
+            const date = new Date(this.currentDate);
+            date.setMonth(date.getMonth() + 1);
+            this.currentDate = date;
+        },
+        previousWeek() {
+            const date = new Date(this.currentDate);
+            date.setDate(date.getDate() - 7);
+            this.currentDate = date;
+        },
+        nextWeek() {
+            const date = new Date(this.currentDate);
+            date.setDate(date.getDate() + 7);
+            this.currentDate = date;
+        },
+        selectDate(dateObj) {
+            if (dateObj && dateObj.date) {
+                const newDate = new Date(dateObj.date);
+                // Preserve the time from the current selection
+                newDate.setHours(this.selectedDate.getHours());
+                newDate.setMinutes(this.selectedDate.getMinutes());
+                this.selectedDate = newDate;
+                this.currentDate = new Date(newDate);
+            }
+        },
+        isToday(dateObj) {
+            if (!dateObj || !dateObj.date) return false;
+            const today = new Date();
+            return dateObj.date.toDateString() === today.toDateString();
+        },
+        isSelected(dateObj) {
+            if (!dateObj || !dateObj.date) return false;
+            return dateObj.date.toDateString() === this.selectedDate.toDateString();
+        },
+        formatDay(date) {
+            // Handle both plain Date objects and wrapped date objects
+            const targetDate = date.date || date;
+            return targetDate.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
+        },
+        getActivitiesForDay(date) {
+            const targetDate = date.date || date;
+            const targetDateStr = targetDate.toISOString().split('T')[0];
+            return this.activities.filter(act => act.date === targetDateStr);
+        },
+        isDaySelected(date) {
+            const targetDate = date.date || date;
+            return this.formatDateToString(targetDate) === this.formatDateToString(this.selectedDate);
+        },
+        getActivityStyle(activity) {
+            const startHour = activity.startTime.getHours();
+            const startMinutes = activity.startTime.getMinutes();
+            const durationInMinutes = activity.duration / 60000; // Convert ms to minutes
+            
+            const top = ((startHour - config.workingHours.start) * 60) + startMinutes;
+            const height = durationInMinutes;
+            
+            return {
+                top: `${top}px`,
+                height: `${height}px`,
+                position: 'absolute',
+                backgroundColor: this.getProjectColor(activity.projectId),
+                width: '90%',
+                left: '5%'
+            };
+        },
+        openActivityDetails(activity) {
+            this.selectedActivity = activity;
+            this.showModal = true;
+        },
+        closeModal() {
+            this.showModal = false;
+            setTimeout(() => {
+                this.selectedActivity = null;
+            }, 300);
+        },
+        formatDateToString(date) {
+            const d = new Date(date);
+            return d.toISOString().split('T')[0];
+        },
+        startTimer() {
+            if (this.currentActivity.description === '') {
+                this.currentActivity.description = 'Untitled activity';
+            }
+            this.timerRunning = true;
+            this.timerStart = new Date();
+            this.currentActivity.startTime = new Date();
+            this.timerInterval = setInterval(() => {
+                this.elapsedTime = new Date() - this.timerStart;
+            }, 1000);
+        },
+        stopTimer() {
+            clearInterval(this.timerInterval);
+            this.timerRunning = false;
+            
+            const now = new Date();
+            const duration = now - this.timerStart;
+            
+            // Only save if the duration is more than a second
+            if (duration > 1000) {
+                this.activities.push({
+                    id: Date.now(),
+                    description: this.currentActivity.description,
+                    projectId: this.currentActivity.projectId || null,
+                    date: now.toISOString().split('T')[0],
+                    startTime: this.currentActivity.startTime,
+                    endTime: now,
+                    duration: duration
+                });
+            }
+            
+            // Reset current activity
+            this.currentActivity = {
+                description: '',
+                projectId: '',
+                startTime: null,
+                endTime: null,
+                duration: 0
+            };
+            this.elapsedTime = 0;
+        },
+        continueActivity(activity) {
+            if (this.timerRunning) {
+                this.stopTimer();
+            }
+            
+            this.currentActivity.description = activity.description;
+            this.currentActivity.projectId = activity.projectId;
+            this.startTimer();
+            this.closeModal();
+        },
+        deleteActivity(activity) {
+            const index = this.activities.findIndex(a => a.id === activity.id);
+            if (index !== -1) {
+                this.activities.splice(index, 1);
+            }
+            this.closeModal();
+        },
+        formatTime(milliseconds) {
+            const seconds = Math.floor((milliseconds / 1000) % 60);
+            const minutes = Math.floor((milliseconds / (1000 * 60)) % 60);
+            const hours = Math.floor(milliseconds / (1000 * 60 * 60));
+            
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        },
+        formatTimeRange(activity) {
+            return `${activity.startTime.toLocaleTimeString('fr-FR', config.timeFormat)} - ${activity.endTime.toLocaleTimeString('fr-FR', config.timeFormat)}`;
+        },
+        formatDateTime(date) {
+            if (!date) return '';
+            return date.toLocaleString('fr-FR', {
+                ...config.dateFormat,
+                ...config.timeFormat
+            });
+        },
+        selectProject(projectId) {
+            this.selectedProject = this.selectedProject === projectId ? null : projectId;
+        },
+        getProjectColor(projectId) {
+            const project = this.projects.find(p => p.id === projectId);
+            return project ? project.color : '#CCCCCC';
+        },
+        getProjectName(projectId) {
+            const project = this.projects.find(p => p.id === projectId);
+            return project ? project.name : 'No Project';
+        }
+    }
+});
+
+app.mount('#app');
