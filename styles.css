@@ -599,7 +599,7 @@ body {
 
 .days-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(7, 1fr);
     flex: 1;
     height: 100%;
     overflow-y: auto;
@@ -617,6 +617,10 @@ body {
     background-color: rgba(165, 211, 255, 0.2);  
 }
 
+.day-column.weekend {
+    background-color: #f9f9f9;
+}
+
 .day-header {
     height: 40px;
     padding: 10px;
@@ -627,6 +631,11 @@ body {
     align-items: center;
     justify-content: center;
     font-weight: 600;
+}
+
+.day-header.weekend {
+    background-color: #f2f2f2;
+    color: #999;
 }
 
 .day-header.selected {

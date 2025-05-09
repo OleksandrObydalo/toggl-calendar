@@ -22,7 +22,7 @@ export const config = {
         month: 'short',
         day: 'numeric'
     },
-    daysToShow: 5,
+    daysToShow: 7, 
     translations: {
         en: {
             projects: "Projects",

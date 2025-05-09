@@ -85,7 +85,7 @@ const app = createApp({
             const day = date.getDay();
             date.setDate(date.getDate() - day);
             
-            // Add days for the week
+            // Add days for the week (now showing 7 days)
             for(let i = 0; i < config.daysToShow; i++) {
                 week.push(new Date(date));
                 date.setDate(date.getDate() + 1);
@@ -467,6 +467,10 @@ const app = createApp({
             if (config.translations[lang]) {
                 this.currentLanguage = lang;
             }
+        },
+        isWeekend(date) {
+            const day = date.getDay();
+            return day === 0 || day === 6; // 0 is Sunday, 6 is Saturday
         },
         formatDateForInput(date) {
             if (!date) return '';

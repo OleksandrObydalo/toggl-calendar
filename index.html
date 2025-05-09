@@ -143,8 +143,15 @@
                     <div class="days-grid">
                         <div v-for="day in currentWeek" 
                              class="day-column"
-                             :class="{ 'selected': isDaySelected(day) }">
-                            <div class="day-header" :class="{ 'selected': isDaySelected(day) }">
+                             :class="{ 
+                                 'selected': isDaySelected(day),
+                                 'weekend': isWeekend(day)
+                             }">
+                            <div class="day-header" 
+                                 :class="{ 
+                                     'selected': isDaySelected(day),
+                                     'weekend': isWeekend(day)
+                                 }">
                                 {{ formatDay(day) }}
                             </div>
                             <div class="activities-container">
