@@ -46,7 +46,11 @@ export const config = {
             editTime: "Edit Time",
             save: "Save",
             cancel: "Cancel",
-            weekdays: ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
+            weekdays: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+            monthNames: ["January", "February", "March", "April", "May", "June", 
+                         "July", "August", "September", "October", "November", "December"],
+            date: "Date",
+            endTimeMustBeAfterStart: "End time must be after start time",
         },
         uk: {
             projects: "Проекти",
@@ -70,7 +74,11 @@ export const config = {
             editTime: "Редагувати час",
             save: "Зберегти",
             cancel: "Скасувати",
-            weekdays: ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"]
+            weekdays: ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"],
+            monthNames: ["Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", 
+                         "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"],
+            date: "Дата",
+            endTimeMustBeAfterStart: "Час закінчення має бути пізніше від часу початку",
         },
         fr: {
             projects: "Projets",
@@ -94,7 +102,11 @@ export const config = {
             editTime: "Modifier l'heure",
             save: "Enregistrer",
             cancel: "Annuler",
-            weekdays: ["Di", "Lu", "Ma", "Me", "Je", "Ve", "Sa"]
+            weekdays: ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"],
+            monthNames: ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", 
+                         "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"],
+            date: "Date",
+            endTimeMustBeAfterStart: "L'heure de fin doit être après l'heure de début",
         }
     }
 };

@@ -209,6 +209,10 @@
                         <span class="detail-value">{{ activityToEdit.description }}</span>
                     </div>
                     <div class="activity-detail">
+                        <span class="detail-label">{{ t('date') }}:</span>
+                        <input type="date" v-model="editDate" class="date-input" />
+                    </div>
+                    <div class="activity-detail">
                         <span class="detail-label">{{ t('startTime') }}</span>
                         <input type="time" v-model="editStartTime" class="time-input" />
                     </div>

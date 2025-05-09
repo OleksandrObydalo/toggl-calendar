@@ -23,6 +23,7 @@ const app = createApp({
             },
             editTimeModal: false,
             activityToEdit: null,
+            editDate: '',
             editStartTime: '',
             editEndTime: '',
             isDarkTheme: false,
@@ -118,7 +119,8 @@ const app = createApp({
             return `${start.toLocaleDateString('fr-FR')} - ${end.toLocaleDateString('fr-FR')}`;
         },
         currentMonthDisplay() {
-            return this.currentDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+            const monthNames = config.translations[this.currentLanguage].monthNames;
+            return `${monthNames[this.currentDate.getMonth()]} ${this.currentDate.getFullYear()}`;
         },
         todayActivities() {
             const today = new Date().toISOString().split('T')[0];
@@ -201,9 +203,21 @@ const app = createApp({
             return dateObj.date.toDateString() === this.selectedDate.toDateString();
         },
         formatDay(date) {
-            // Handle both plain Date objects and wrapped date objects
+            // Use localized weekday based on current language
             const targetDate = date.date || date;
-            return targetDate.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
+            const options = { 
+                weekday: 'short', 
+                day: 'numeric' 
+            };
+            
+            // Map language codes to locale strings
+            const localeMap = {
+                'en': 'en-US',
+                'uk': 'uk-UA',
+                'fr': 'fr-FR'
+            };
+            
+            return targetDate.toLocaleDateString(localeMap[this.currentLanguage] || 'en-US', options);
         },
         getActivitiesForDay(date) {
             const targetDate = date.date || date;
@@ -233,6 +247,7 @@ const app = createApp({
         },
         openEditTimeModal(activity) {
             this.activityToEdit = activity;
+            this.editDate = this.formatDateForInput(activity.date);
             this.editStartTime = this.formatTimeForInput(activity.startTime);
             this.editEndTime = this.formatTimeForInput(activity.endTime);
             this.editTimeModal = true;
@@ -246,18 +261,17 @@ const app = createApp({
         saveEditedTime() {
             if (!this.activityToEdit) return;
             
-            const datePart = this.activityToEdit.date;
-            const startDateTime = new Date(`${datePart}T${this.editStartTime}`);
-            const endDateTime = new Date(`${datePart}T${this.editEndTime}`);
+            const startDateTime = new Date(`${this.editDate}T${this.editStartTime}`);
+            const endDateTime = new Date(`${this.editDate}T${this.editEndTime}`);
             
             if (endDateTime <= startDateTime) {
-                alert("End time must be after start time");
+                alert(this.t('endTimeMustBeAfterStart'));
                 return;
             }
             
             const duration = endDateTime - startDateTime;
             
-            // Update the activity
+            this.activityToEdit.date = this.editDate;
             this.activityToEdit.startTime = startDateTime;
             this.activityToEdit.endTime = endDateTime;
             this.activityToEdit.duration = duration;
@@ -307,7 +321,6 @@ const app = createApp({
             const now = new Date();
             const duration = now - this.timerStart;
             
-            // Only save if the duration is more than a second
             if (duration > 1000) {
                 this.activities.push({
                     id: Date.now(),
@@ -320,7 +333,6 @@ const app = createApp({
                 });
             }
             
-            // Reset current activity
             this.currentActivity = {
                 description: '',
                 projectId: '',
@@ -382,6 +394,11 @@ const app = createApp({
             if (config.translations[lang]) {
                 this.currentLanguage = lang;
             }
+        },
+        formatDateForInput(date) {
+            if (!date) return '';
+            const d = new Date(date);
+            return d.toISOString().split('T')[0];
         },
     }
 });
