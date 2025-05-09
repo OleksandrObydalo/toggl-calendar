@@ -54,14 +54,54 @@
                     <h3>{{ t('projects') }}</h3>
                     <div class="project-actions">
                         <button class="add-project-button" @click="openProjectModal()">{{ t('addProject') }}</button>
+                        <button class="toggle-view-button" @click="toggleHierarchicalView">
+                            {{ hierarchicalView ? t('flatView') : t('hierarchicalView') }}
+                        </button>
                     </div>
-                    <ul>
+                    <ul v-if="hierarchicalView">
+                        <li v-for="project in projectsHierarchy" 
+                            :class="{ active: selectedProject === project.id }"
+                            @click="selectProject(project.id)">
+                            <span class="project-color" :style="{ backgroundColor: project.color }"></span>
+                            {{ project.name }}
+                            <button class="edit-project-button" @click.stop="openProjectModal(project)">{{ t('edit') }}</button>
+                            <button class="add-subproject-button" @click.stop="openProjectModal(null, project.id)">+</button>
+                            <ul class="subprojects-list">
+                                <li v-for="subproject in getSubprojects(project.id)"
+                                    :class="{ active: selectedProject === subproject.id }"
+                                    @click.stop="selectProject(subproject.id)">
+                                    <span class="project-color" :style="{ backgroundColor: subproject.color }"></span>
+                                    {{ subproject.name }}
+                                    <button class="edit-project-button" @click.stop="openProjectModal(subproject)">{{ t('edit') }}</button>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <ul v-else>
                         <li v-for="project in projects" 
                             :class="{ active: selectedProject === project.id }"
                             @click="selectProject(project.id)">
                             <span class="project-color" :style="{ backgroundColor: project.color }"></span>
                             {{ project.name }}
                             <button class="edit-project-button" @click.stop="openProjectModal(project)">{{ t('edit') }}</button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="time-goals">
+                    <h3>{{ t('timeGoals') }}</h3>
+                    <div class="goal-actions">
+                        <button class="add-goal-button" @click="openTimeGoalModal()">{{ t('addGoal') }}</button>
+                    </div>
+                    <ul class="goals-list">
+                        <li v-for="goal in timeGoalProgress" :key="goal.id">
+                            <div class="goal-info">
+                                <span class="goal-name">{{ goal.description }}</span>
+                                <span class="goal-hours">{{ goal.currentHours.toFixed(1) }}/{{ goal.targetHours }}h</span>
+                            </div>
+                            <div class="goal-progress-bar">
+                                <div class="goal-progress" :style="{ width: goal.progress + '%' }"></div>
+                            </div>
+                            <button class="edit-goal-button" @click.stop="openTimeGoalModal(goal)">{{ t('edit') }}</button>
                         </li>
                     </ul>
                 </div>
@@ -87,6 +127,7 @@
                 <div class="timer-container">
                     <div class="timer-display">
                         <div class="description-input">
+                            <h4>{{ t('categorizeActivity') }}</h4>
                             <input v-model="currentActivity.description" :placeholder="t('whatAreYouWorkingOn')" 
                                    list="task-suggestions" />
                             <datalist id="task-suggestions">
@@ -96,8 +137,29 @@
                         <div class="project-selector">
                             <select v-model="currentActivity.projectId">
                                 <option value="">{{ t('selectProject') }}</option>
-                                <option v-for="project in projects" :value="project.id">{{ project.name }}</option>
+                                <template v-if="hierarchicalView">
+                                    <option v-for="project in projectsHierarchy" :value="project.id">{{ project.name }}</option>
+                                    <template v-for="parent in projectsHierarchy">
+                                        <option v-for="subproject in getSubprojects(parent.id)" :value="subproject.id">
+                                            — {{ subproject.name }}
+                                        </option>
+                                    </template>
+                                </template>
+                                <template v-else>
+                                    <option v-for="project in projects" :value="project.id">{{ project.name }}</option>
+                                </template>
                             </select>
+                        </div>
+                        <div class="tags-selector">
+                            <div class="tags-label">{{ t('tags') }}:</div>
+                            <div class="tags-container">
+                                <span v-for="tag in availableTags" 
+                                      :class="['tag', { selected: currentActivity.tags.includes(tag.id) }]"
+                                      :style="{ backgroundColor: tag.color }"
+                                      @click="toggleTag(tag.id)">
+                                    {{ tag.name }}
+                                </span>
+                            </div>
                         </div>
                         <div class="timer">
                             <span class="time">{{ formatTime(elapsedTime) }}</span>
@@ -116,6 +178,12 @@
                                 <div class="activity-project" :style="{ color: getProjectColor(activity.projectId) }">
                                     {{ getProjectName(activity.projectId) }}
                                 </div>
+                                <div class="activity-tags">
+                                    <span v-for="tagId in activity.tags" class="activity-tag" 
+                                          :style="{ backgroundColor: getTagColor(tagId) }">
+                                        {{ availableTags.find(t => t.id === tagId)?.name }}
+                                    </span>
+                                </div>
                             </div>
                             <div class="activity-time">
                                 <span>{{ formatTime(activity.duration) }}</span>
@@ -132,6 +200,40 @@
                         <div v-for="item in taskTimeSummary" class="summary-item">
                             <div class="summary-task">{{ item.description }}</div>
                             <div class="summary-duration">{{ formatTime(item.totalDuration) }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="weekly-productivity">
+                    <h3>{{ t('weeklyProductivity') }}</h3>
+                    <div class="productivity-chart">
+                        <div v-for="item in weeklyProductivityData" class="chart-bar-container">
+                            <div class="chart-label">{{ item.day }}</div>
+                            <div class="chart-bar-wrapper">
+                                <div class="chart-bar" :style="{ height: (item.hours * 20) + 'px' }"></div>
+                            </div>
+                            <div class="chart-value">{{ item.hours.toFixed(1) }}h</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="planned-vs-actual">
+                    <h3>{{ t('compareTime') }}</h3>
+                    <div class="comparison-chart">
+                        <div v-for="item in plannedTimes" class="comparison-item">
+                            <div class="comparison-label">{{ item.description }}</div>
+                            <div class="comparison-bars">
+                                <div class="comparison-planned" :style="{ width: (item.plannedHours * 30) + 'px' }">
+                                    {{ item.plannedHours }}h
+                                </div>
+                                <div class="comparison-actual" :style="{ width: (item.actualHours * 30) + 'px' }">
+                                    {{ item.actualHours }}h
+                                </div>
+                            </div>
+                            <div class="comparison-legend">
+                                <span class="planned-legend">{{ t('planned') }}</span>
+                                <span class="actual-legend">{{ t('actual') }}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -208,7 +310,7 @@
                 </div>
             </div>
         </div>
-        <div class="modal-overlay" :class="{ active: editTimeModal }" @click.self="closeEditTimeModal">
+        <div class="modal-overlay" :class="{ active: activityToEdit !== null && editTimeModal }" @click.self="closeEditTimeModal">
             <div class="modal-content">
                 <button class="modal-close" @click="closeEditTimeModal">×</button>
                 <div class="modal-header">
@@ -218,6 +320,10 @@
                     <div class="activity-detail">
                         <span class="detail-label">{{ t('description') }}</span>
                         <span class="detail-value">{{ activityToEdit.description }}</span>
+                    </div>
+                    <div class="activity-detail">
+                        <span class="detail-label">{{ t('tags') }}</span>
+                        <span class="detail-value">{{ getTagNames(activityToEdit.tags) }}</span>
                     </div>
                     <div class="activity-detail">
                         <span class="detail-label">{{ t('date') }}:</span>
@@ -254,6 +360,16 @@
                         <input type="text" v-model="projectForm.name" class="project-input">
                     </div>
                     <div class="project-detail">
+                        <span class="detail-label">{{ t('parentProject') }}</span>
+                        <select v-model="projectForm.parentId" class="project-input">
+                            <option :value="null">{{ t('noProject') }}</option>
+                            <option v-for="project in projects.filter(p => p.id !== (editingProject?.id || -1) && !p.parentId)" 
+                                    :value="project.id">
+                                {{ project.name }}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="project-detail">
                         <span class="detail-label">{{ t('color') }}</span>
                         <div class="color-picker">
                             <div v-for="color in availableColors" 
@@ -272,6 +388,35 @@
                             {{ t('delete') }}
                         </button>
                         <button class="action-button cancel-button" @click="closeProjectModal">
+                            {{ t('cancel') }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-overlay" :class="{ active: timeGoalModal }" @click.self="closeTimeGoalModal">
+            <div class="modal-content">
+                <button class="modal-close" @click="closeTimeGoalModal">×</button>
+                <div class="modal-header">
+                    <h2>{{ editingGoal ? t('editTimeGoal') : t('setTimeGoal') }}</h2>
+                </div>
+                <div>
+                    <div class="goal-detail">
+                        <span class="detail-label">{{ t('goalDescription') }}</span>
+                        <input type="text" v-model="goalForm.description" class="goal-input">
+                    </div>
+                    <div class="goal-detail">
+                        <span class="detail-label">{{ t('targetHours') }}</span>
+                        <input type="number" v-model="goalForm.targetHours" min="1" step="0.5" class="goal-input">
+                    </div>
+                    <div class="activity-actions">
+                        <button class="action-button save-button" @click="saveTimeGoal">
+                            {{ t('save') }}
+                        </button>
+                        <button v-if="editingGoal" class="action-button delete-button" @click="deleteTimeGoal">
+                            {{ t('delete') }}
+                        </button>
+                        <button class="action-button cancel-button" @click="closeTimeGoalModal">
                             {{ t('cancel') }}
                         </button>
                     </div>

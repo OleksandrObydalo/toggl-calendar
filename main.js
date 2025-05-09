@@ -19,7 +19,8 @@ const app = createApp({
                 projectId: '',
                 startTime: null,
                 endTime: null,
-                duration: 0
+                duration: 0,
+                tags: []
             },
             editTimeModal: false,
             activityToEdit: null,
@@ -31,7 +32,8 @@ const app = createApp({
             editingProject: null,
             projectForm: {
                 name: '',
-                color: '#4A90E2'
+                color: '#4A90E2',
+                parentId: null
             },
             availableColors: config.defaultProjectColors,
             activities: [
@@ -42,7 +44,8 @@ const app = createApp({
                     date: new Date().toISOString().split('T')[0],
                     startTime: new Date(new Date().setHours(9, 0, 0, 0)),
                     endTime: new Date(new Date().setHours(10, 0, 0, 0)),
-                    duration: 3600000 // 1 hour in milliseconds
+                    duration: 3600000, // 1 hour in milliseconds
+                    tags: []
                 },
                 {
                     id: 2,
@@ -51,7 +54,8 @@ const app = createApp({
                     date: new Date().toISOString().split('T')[0],
                     startTime: new Date(new Date().setHours(13, 0, 0, 0)),
                     endTime: new Date(new Date().setHours(15, 30, 0, 0)),
-                    duration: 9000000 // 2.5 hours in milliseconds
+                    duration: 9000000, // 2.5 hours in milliseconds
+                    tags: []
                 },
                 {
                     id: 3,
@@ -60,20 +64,40 @@ const app = createApp({
                     date: new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
                     startTime: new Date(new Date(new Date().setDate(new Date().getDate() + 1)).setHours(10, 0, 0, 0)),
                     endTime: new Date(new Date(new Date().setDate(new Date().getDate() + 1)).setHours(12, 0, 0, 0)),
-                    duration: 7200000 // 2 hours in milliseconds
+                    duration: 7200000, // 2 hours in milliseconds
+                    tags: []
                 }
             ],
             projects: [
-                { id: 1, name: 'Client Project A', color: '#4A90E2' },
-                { id: 2, name: 'Website Redesign', color: '#32CD32' },
-                { id: 3, name: 'Marketing Campaign', color: '#E74C3C' },
-                { id: 4, name: 'Internal Tools', color: '#9B59B6' }
+                { id: 1, name: 'Client Project A', color: '#4A90E2', parentId: null },
+                { id: 2, name: 'Website Redesign', color: '#32CD32', parentId: 1 },
+                { id: 3, name: 'Marketing Campaign', color: '#E74C3C', parentId: null },
+                { id: 4, name: 'Internal Tools', color: '#9B59B6', parentId: null }
             ],
+            availableTags: config.activityTags,
+            selectedTags: [],
             hours: Array.from(
                 { length: config.workingHours.end - config.workingHours.start + 1 },  
                 (_, i) => i + config.workingHours.start
             ),
             currentLanguage: 'fr',
+            timeGoals: [
+                { id: 1, description: 'Client Project A', targetHours: 20 },
+                { id: 2, description: 'Website Redesign', targetHours: 15 },
+                { id: 3, description: 'Marketing Campaign', targetHours: 10 }
+            ],
+            timeGoalModal: false,
+            editingGoal: null,
+            goalForm: {
+                description: '',
+                targetHours: 10
+            },
+            plannedTimes: [
+                { id: 1, description: 'Client Meeting', plannedHours: 1, actualHours: 1.5 },
+                { id: 2, description: 'Website Development', plannedHours: 2, actualHours: 2.5 },
+                { id: 3, description: 'Research', plannedHours: 3, actualHours: 2 }
+            ],
+            hierarchicalView: true
         };
     },
     computed: {
@@ -164,6 +188,55 @@ const app = createApp({
         },
         weekdays() {
             return config.translations[this.currentLanguage].weekdays;
+        },
+        timeGoalProgress() {
+            return this.timeGoals.map(goal => {
+                const relatedActivities = this.activities.filter(activity => 
+                    activity.description.toLowerCase().includes(goal.description.toLowerCase()));
+                
+                const totalHours = relatedActivities.reduce((sum, activity) => 
+                    sum + (activity.duration / 3600000), 0);
+                
+                const progress = Math.min((totalHours / goal.targetHours) * 100, 100);
+                
+                return {
+                    ...goal,
+                    progress,
+                    currentHours: totalHours
+                };
+            });
+        },
+        weeklyProductivityData() {
+            const weekdays = this.weekdays;
+            const data = [];
+            
+            for (let i = 0; i < 7; i++) {
+                const day = this.currentWeek[i];
+                const dayActivities = this.getActivitiesForDay(day);
+                const totalHours = dayActivities.reduce((sum, activity) => 
+                    sum + (activity.duration / 3600000), 0);
+                
+                data.push({
+                    day: weekdays[i],
+                    hours: totalHours
+                });
+            }
+            
+            return data;
+        },
+        projectsHierarchy() {
+            if (!this.hierarchicalView) {
+                return this.projects;
+            }
+            
+            // Only return top-level projects for the hierarchy view
+            return this.projects.filter(project => !project.parentId);
+        },
+        
+        getSubprojects() {
+            return (parentId) => {
+                return this.projects.filter(project => project.parentId === parentId);
+            };
         },
     },
     methods: {
@@ -310,14 +383,16 @@ const app = createApp({
             const d = new Date(date);
             return d.toISOString().split('T')[0];
         },
-        openProjectModal(project = null) {
+        openProjectModal(project = null, parentId = null) {
             this.editingProject = project;
             if (project) {
                 this.projectForm.name = project.name;
                 this.projectForm.color = project.color;
+                this.projectForm.parentId = project.parentId;
             } else {
                 this.projectForm.name = '';
                 this.projectForm.color = this.availableColors[0];
+                this.projectForm.parentId = parentId;
             }
             this.projectModal = true;
         },
@@ -342,6 +417,7 @@ const app = createApp({
                 if (index !== -1) {
                     this.projects[index].name = this.projectForm.name;
                     this.projects[index].color = this.projectForm.color;
+                    this.projects[index].parentId = this.projectForm.parentId;
                 }
             } else {
                 // Create new project
@@ -349,7 +425,8 @@ const app = createApp({
                 this.projects.push({
                     id: newId,
                     name: this.projectForm.name,
-                    color: this.projectForm.color
+                    color: this.projectForm.color,
+                    parentId: this.projectForm.parentId
                 });
             }
             
@@ -362,6 +439,13 @@ const app = createApp({
             const projectInUse = this.activities.some(a => a.projectId === this.editingProject.id);
             if (projectInUse) {
                 alert(this.t('cannotDeleteProjectInUse'));
+                return;
+            }
+            
+            // Check if project has subprojects
+            const hasSubprojects = this.projects.some(p => p.parentId === this.editingProject.id);
+            if (hasSubprojects) {
+                alert(this.t('cannotDeleteProjectWithSubprojects'));
                 return;
             }
             
@@ -402,7 +486,8 @@ const app = createApp({
                     date: now.toISOString().split('T')[0],
                     startTime: this.currentActivity.startTime,
                     endTime: now,
-                    duration: duration
+                    duration: duration,
+                    tags: [...this.currentActivity.tags]
                 });
             }
             
@@ -411,7 +496,8 @@ const app = createApp({
                 projectId: '',
                 startTime: null,
                 endTime: null,
-                duration: 0
+                duration: 0,
+                tags: []
             };
             this.elapsedTime = 0;
         },
@@ -422,6 +508,7 @@ const app = createApp({
             
             this.currentActivity.description = activity.description;
             this.currentActivity.projectId = activity.projectId;
+            this.currentActivity.tags = activity.tags ? [...activity.tags] : [];
             this.startTimer();
             this.closeModal();
         },
@@ -460,6 +547,34 @@ const app = createApp({
             const project = this.projects.find(p => p.id === projectId);
             return project ? project.name : this.t('noProject');
         },
+        getTagsForActivity(activity) {
+            return activity.tags || [];
+        },
+        
+        getTagNames(tagIds) {
+            if (!tagIds || !tagIds.length) return this.t('noTags');
+            return tagIds.map(id => {
+                const tag = this.availableTags.find(t => t.id === id);
+                return tag ? tag.name : '';
+            }).filter(name => name).join(', ');
+        },
+        
+        getTagColor(tagId) {
+            const tag = this.availableTags.find(t => t.id === tagId);
+            return tag ? tag.color : '#CCCCCC';
+        },
+        
+        toggleTag(tagId) {
+            const index = this.currentActivity.tags.indexOf(tagId);
+            if (index === -1) {
+                this.currentActivity.tags.push(tagId);
+            } else {
+                this.currentActivity.tags.splice(index, 1);
+            }
+        },
+        toggleHierarchicalView() {
+            this.hierarchicalView = !this.hierarchicalView;
+        },
         t(key) {
             return config.translations[this.currentLanguage][key] || key;
         },
@@ -476,6 +591,75 @@ const app = createApp({
             if (!date) return '';
             const d = new Date(date);
             return d.toISOString().split('T')[0];
+        },
+        openTimeGoalModal(goal = null) {
+            this.editingGoal = goal;
+            if (goal) {
+                this.goalForm.description = goal.description;
+                this.goalForm.targetHours = goal.targetHours;
+            } else {
+                this.goalForm.description = '';
+                this.goalForm.targetHours = 10;
+            }
+            this.timeGoalModal = true;
+        },
+        closeTimeGoalModal() {
+            this.timeGoalModal = false;
+            setTimeout(() => {
+                this.editingGoal = null;
+            }, 300);
+        },
+        saveTimeGoal() {
+            if (!this.goalForm.description.trim()) {
+                alert(this.t('goalNameRequired'));
+                return;
+            }
+            
+            if (!this.goalForm.targetHours || this.goalForm.targetHours <= 0) {
+                alert(this.t('goalTargetRequired'));
+                return;
+            }
+            
+            if (this.editingGoal) {
+                // Update existing goal
+                const index = this.timeGoals.findIndex(g => g.id === this.editingGoal.id);
+                if (index !== -1) {
+                    this.timeGoals[index].description = this.goalForm.description;
+                    this.timeGoals[index].targetHours = this.goalForm.targetHours;
+                    alert(this.t('goalUpdated'));
+                }
+            } else {
+                // Check if goal with same description exists
+                const exists = this.timeGoals.some(g => 
+                    g.description.toLowerCase() === this.goalForm.description.toLowerCase());
+                
+                if (exists) {
+                    alert(this.t('goalExists'));
+                    return;
+                }
+                
+                // Create new goal
+                const newId = Math.max(0, ...this.timeGoals.map(g => g.id)) + 1;
+                this.timeGoals.push({
+                    id: newId,
+                    description: this.goalForm.description,
+                    targetHours: this.goalForm.targetHours
+                });
+                alert(this.t('goalAdded'));
+            }
+            
+            this.closeTimeGoalModal();
+        },
+        deleteTimeGoal() {
+            if (!this.editingGoal) return;
+            
+            const index = this.timeGoals.findIndex(g => g.id === this.editingGoal.id);
+            if (index !== -1) {
+                this.timeGoals.splice(index, 1);
+                alert(this.t('goalDeleted'));
+            }
+            
+            this.closeTimeGoalModal();
         },
     }
 });
