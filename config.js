@@ -51,6 +51,13 @@ export const config = {
                          "July", "August", "September", "October", "November", "December"],
             date: "Date",
             endTimeMustBeAfterStart: "End time must be after start time",
+            addProject: "Add Project",
+            editProject: "Edit Project",
+            name: "Name:",
+            color: "Color:",
+            edit: "Edit",
+            projectNameRequired: "Project name is required",
+            cannotDeleteProjectInUse: "Cannot delete a project that is in use",
         },
         uk: {
             projects: "Проекти",
@@ -79,6 +86,13 @@ export const config = {
                          "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"],
             date: "Дата",
             endTimeMustBeAfterStart: "Час закінчення має бути пізніше від часу початку",
+            addProject: "Додати проект",
+            editProject: "Редагувати проект",
+            name: "Назва:",
+            color: "Колір:",
+            edit: "Редагувати",
+            projectNameRequired: "Назва проекту обов'язкова",
+            cannotDeleteProjectInUse: "Неможливо видалити проект, який використовується",
         },
         fr: {
             projects: "Projets",
@@ -107,6 +121,13 @@ export const config = {
                          "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"],
             date: "Date",
             endTimeMustBeAfterStart: "L'heure de fin doit être après l'heure de début",
+            addProject: "Ajouter un projet",
+            editProject: "Modifier le projet",
+            name: "Nom:",
+            color: "Couleur:",
+            edit: "Modifier",
+            projectNameRequired: "Le nom du projet est requis",
+            cannotDeleteProjectInUse: "Impossible de supprimer un projet en cours d'utilisation",
         }
     }
 };

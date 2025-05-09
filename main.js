@@ -27,6 +27,13 @@ const app = createApp({
             editStartTime: '',
             editEndTime: '',
             isDarkTheme: false,
+            projectModal: false,
+            editingProject: null,
+            projectForm: {
+                name: '',
+                color: '#4A90E2'
+            },
+            availableColors: config.defaultProjectColors,
             activities: [
                 {
                     id: 1,
@@ -302,6 +309,72 @@ const app = createApp({
         formatDateToString(date) {
             const d = new Date(date);
             return d.toISOString().split('T')[0];
+        },
+        openProjectModal(project = null) {
+            this.editingProject = project;
+            if (project) {
+                this.projectForm.name = project.name;
+                this.projectForm.color = project.color;
+            } else {
+                this.projectForm.name = '';
+                this.projectForm.color = this.availableColors[0];
+            }
+            this.projectModal = true;
+        },
+        closeProjectModal() {
+            this.projectModal = false;
+            setTimeout(() => {
+                this.editingProject = null;
+            }, 300);
+        },
+        selectColor(color) {
+            this.projectForm.color = color;
+        },
+        saveProject() {
+            if (!this.projectForm.name.trim()) {
+                alert(this.t('projectNameRequired'));
+                return;
+            }
+            
+            if (this.editingProject) {
+                // Update existing project
+                const index = this.projects.findIndex(p => p.id === this.editingProject.id);
+                if (index !== -1) {
+                    this.projects[index].name = this.projectForm.name;
+                    this.projects[index].color = this.projectForm.color;
+                }
+            } else {
+                // Create new project
+                const newId = Math.max(0, ...this.projects.map(p => p.id)) + 1;
+                this.projects.push({
+                    id: newId,
+                    name: this.projectForm.name,
+                    color: this.projectForm.color
+                });
+            }
+            
+            this.closeProjectModal();
+        },
+        deleteProject() {
+            if (!this.editingProject) return;
+            
+            // Check if project is in use
+            const projectInUse = this.activities.some(a => a.projectId === this.editingProject.id);
+            if (projectInUse) {
+                alert(this.t('cannotDeleteProjectInUse'));
+                return;
+            }
+            
+            const index = this.projects.findIndex(p => p.id === this.editingProject.id);
+            if (index !== -1) {
+                this.projects.splice(index, 1);
+            }
+            
+            if (this.selectedProject === this.editingProject.id) {
+                this.selectedProject = null;
+            }
+            
+            this.closeProjectModal();
         },
         startTimer() {
             if (this.currentActivity.description === '') {

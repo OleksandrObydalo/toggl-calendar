@@ -52,12 +52,16 @@
                 </table>
                 <div class="project-list">
                     <h3>{{ t('projects') }}</h3>
+                    <div class="project-actions">
+                        <button class="add-project-button" @click="openProjectModal()">{{ t('addProject') }}</button>
+                    </div>
                     <ul>
                         <li v-for="project in projects" 
                             :class="{ active: selectedProject === project.id }"
                             @click="selectProject(project.id)">
                             <span class="project-color" :style="{ backgroundColor: project.color }"></span>
                             {{ project.name }}
+                            <button class="edit-project-button" @click.stop="openProjectModal(project)">{{ t('edit') }}</button>
                         </li>
                     </ul>
                 </div>
@@ -225,6 +229,42 @@
                             {{ t('save') }}
                         </button>
                         <button class="action-button cancel-button" @click="closeEditTimeModal">
+                            {{ t('cancel') }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-overlay" :class="{ active: projectModal }" @click.self="closeProjectModal">
+            <div class="modal-content">
+                <button class="modal-close" @click="closeProjectModal">×</button>
+                <div class="modal-header">
+                    <h2>{{ editingProject ? t('editProject') : t('addProject') }}</h2>
+                </div>
+                <div>
+                    <div class="project-detail">
+                        <span class="detail-label">{{ t('name') }}</span>
+                        <input type="text" v-model="projectForm.name" class="project-input">
+                    </div>
+                    <div class="project-detail">
+                        <span class="detail-label">{{ t('color') }}</span>
+                        <div class="color-picker">
+                            <div v-for="color in availableColors" 
+                                 class="color-option" 
+                                 :style="{ backgroundColor: color }"
+                                 :class="{ selected: projectForm.color === color }"
+                                 @click="selectColor(color)">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="activity-actions">
+                        <button class="action-button save-button" @click="saveProject">
+                            {{ t('save') }}
+                        </button>
+                        <button v-if="editingProject" class="action-button delete-button" @click="deleteProject">
+                            {{ t('delete') }}
+                        </button>
+                        <button class="action-button cancel-button" @click="closeProjectModal">
                             {{ t('cancel') }}
                         </button>
                     </div>
