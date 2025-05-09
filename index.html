@@ -32,13 +32,7 @@
                 <table class="mini-calendar">
                     <thead>
                         <tr>
-                            <th>Di</th>
-                            <th>Lu</th>
-                            <th>Ma</th>
-                            <th>Me</th>
-                            <th>Je</th>
-                            <th>Ve</th>
-                            <th>Sa</th>
+                            <th v-for="(day, index) in weekdays" :key="index">{{ day }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -57,7 +51,7 @@
                     </tbody>
                 </table>
                 <div class="project-list">
-                    <h3>Projects</h3>
+                    <h3>{{ t('projects') }}</h3>
                     <ul>
                         <li v-for="project in projects" 
                             :class="{ active: selectedProject === project.id }"
@@ -66,6 +60,16 @@
                             {{ project.name }}
                         </li>
                     </ul>
+                </div>
+                <div class="theme-toggle">
+                    <button @click="toggleTheme">
+                        {{ isDarkTheme ? t('lightMode') : t('darkMode') }}
+                    </button>
+                    <div class="language-selector">
+                        <button @click="changeLanguage('en')" :class="{ active: currentLanguage === 'en' }">EN</button>
+                        <button @click="changeLanguage('uk')" :class="{ active: currentLanguage === 'uk' }">UA</button>
+                        <button @click="changeLanguage('fr')" :class="{ active: currentLanguage === 'fr' }">FR</button>
+                    </div>
                 </div>
             </aside>
 
@@ -79,24 +83,28 @@
                 <div class="timer-container">
                     <div class="timer-display">
                         <div class="description-input">
-                            <input v-model="currentActivity.description" placeholder="What are you working on?" />
+                            <input v-model="currentActivity.description" :placeholder="t('whatAreYouWorkingOn')" 
+                                   list="task-suggestions" />
+                            <datalist id="task-suggestions">
+                                <option v-for="task in taskSuggestions" :value="task"></option>
+                            </datalist>
                         </div>
                         <div class="project-selector">
                             <select v-model="currentActivity.projectId">
-                                <option value="">Select project</option>
+                                <option value="">{{ t('selectProject') }}</option>
                                 <option v-for="project in projects" :value="project.id">{{ project.name }}</option>
                             </select>
                         </div>
                         <div class="timer">
                             <span class="time">{{ formatTime(elapsedTime) }}</span>
-                            <button v-if="!timerRunning" @click="startTimer" class="start-button">Start</button>
-                            <button v-else @click="stopTimer" class="stop-button">Stop</button>
+                            <button v-if="!timerRunning" @click="startTimer" class="start-button">{{ t('start') }}</button>
+                            <button v-else @click="stopTimer" class="stop-button">{{ t('stop') }}</button>
                         </div>
                     </div>
                 </div>
 
                 <div class="activity-list">
-                    <h3>Today's Activities</h3>
+                    <h3>{{ t('todayActivities') }}</h3>
                     <div class="activities">
                         <div v-for="activity in todayActivities" class="activity-item">
                             <div class="activity-details">
@@ -107,8 +115,19 @@
                             </div>
                             <div class="activity-time">
                                 <span>{{ formatTime(activity.duration) }}</span>
+                                <button @click="openEditTimeModal(activity)" class="edit-time-button">Edit</button>
                                 <button @click="continueActivity(activity)" class="continue-button">Continue</button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="time-summary">
+                    <h3>{{ t('taskTimeSummary') }}</h3>
+                    <div class="summary-list">
+                        <div v-for="item in taskTimeSummary" class="summary-item">
+                            <div class="summary-task">{{ item.description }}</div>
+                            <div class="summary-duration">{{ formatTime(item.totalDuration) }}</div>
                         </div>
                     </div>
                 </div>
@@ -142,37 +161,67 @@
             <div class="modal-content">
                 <button class="modal-close" @click="closeModal">×</button>
                 <div class="modal-header">
-                    <h2>Activity Details</h2>
+                    <h2>{{ t('activityDetails') }}</h2>
                 </div>
                 <div v-if="selectedActivity">
                     <div class="activity-detail">
-                        <span class="detail-label">Description:</span>
+                        <span class="detail-label">{{ t('description') }}</span>
                         <span class="detail-value">{{ selectedActivity.description }}</span>
                     </div>
                     <div class="activity-detail">
-                        <span class="detail-label">Project:</span>
+                        <span class="detail-label">{{ t('project') }}</span>
                         <span class="detail-value" :style="{ color: getProjectColor(selectedActivity.projectId) }">
                             {{ getProjectName(selectedActivity.projectId) }}
                         </span>
                     </div>
                     <div class="activity-detail">
-                        <span class="detail-label">Start Time:</span>
+                        <span class="detail-label">{{ t('startTime') }}</span>
                         <span class="detail-value">{{ formatDateTime(selectedActivity.startTime) }}</span>
                     </div>
                     <div class="activity-detail">
-                        <span class="detail-label">End Time:</span>
+                        <span class="detail-label">{{ t('endTime') }}</span>
                         <span class="detail-value">{{ formatDateTime(selectedActivity.endTime) }}</span>
                     </div>
                     <div class="activity-detail">
-                        <span class="detail-label">Duration:</span>
+                        <span class="detail-label">{{ t('duration') }}</span>
                         <span class="detail-value">{{ formatTime(selectedActivity.duration) }}</span>
                     </div>
                     <div class="activity-actions">
                         <button class="action-button continue-button" @click="continueActivity(selectedActivity)">
-                            Continue
+                            {{ t('continue') }}
                         </button>
                         <button class="action-button delete-button" @click="deleteActivity(selectedActivity)">
-                            Delete
+                            {{ t('delete') }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-overlay" :class="{ active: editTimeModal }" @click.self="closeEditTimeModal">
+            <div class="modal-content">
+                <button class="modal-close" @click="closeEditTimeModal">×</button>
+                <div class="modal-header">
+                    <h2>{{ t('editTime') }}</h2>
+                </div>
+                <div v-if="activityToEdit">
+                    <div class="activity-detail">
+                        <span class="detail-label">{{ t('description') }}</span>
+                        <span class="detail-value">{{ activityToEdit.description }}</span>
+                    </div>
+                    <div class="activity-detail">
+                        <span class="detail-label">{{ t('startTime') }}</span>
+                        <input type="time" v-model="editStartTime" class="time-input" />
+                    </div>
+                    <div class="activity-detail">
+                        <span class="detail-label">{{ t('endTime') }}</span>
+                        <input type="time" v-model="editEndTime" class="time-input" />
+                    </div>
+                    <div class="activity-actions">
+                        <button class="action-button save-button" @click="saveEditedTime">
+                            {{ t('save') }}
+                        </button>
+                        <button class="action-button cancel-button" @click="closeEditTimeModal">
+                            {{ t('cancel') }}
                         </button>
                     </div>
                 </div>

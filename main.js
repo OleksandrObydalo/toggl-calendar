@@ -21,6 +21,11 @@ const app = createApp({
                 endTime: null,
                 duration: 0
             },
+            editTimeModal: false,
+            activityToEdit: null,
+            editStartTime: '',
+            editEndTime: '',
+            isDarkTheme: false,
             activities: [
                 {
                     id: 1,
@@ -59,7 +64,8 @@ const app = createApp({
             hours: Array.from(
                 { length: config.workingHours.end - config.workingHours.start + 1 },  
                 (_, i) => i + config.workingHours.start
-            )
+            ),
+            currentLanguage: 'fr',
         };
     },
     computed: {
@@ -126,7 +132,30 @@ const app = createApp({
                 const dateString = date.date.toISOString().split('T')[0];
                 return this.activities.some(act => act.date === dateString);
             };
-        }
+        },
+        taskSuggestions() {
+            const uniqueTasks = [...new Set(this.activities.map(a => a.description))];
+            return uniqueTasks.filter(task => 
+                task.toLowerCase().includes(this.currentActivity.description.toLowerCase())
+            );
+        },
+        taskTimeSummary() {
+            const summary = {};
+            this.activities.forEach(activity => {
+                if (!summary[activity.description]) {
+                    summary[activity.description] = 0;
+                }
+                summary[activity.description] += activity.duration;
+            });
+            
+            return Object.entries(summary).map(([task, duration]) => ({
+                description: task,
+                totalDuration: duration
+            })).sort((a, b) => b.totalDuration - a.totalDuration);
+        },
+        weekdays() {
+            return config.translations[this.currentLanguage].weekdays;
+        },
     },
     methods: {
         toggleSidebar() {
@@ -201,6 +230,50 @@ const app = createApp({
                 width: '90%',
                 left: '5%'
             };
+        },
+        openEditTimeModal(activity) {
+            this.activityToEdit = activity;
+            this.editStartTime = this.formatTimeForInput(activity.startTime);
+            this.editEndTime = this.formatTimeForInput(activity.endTime);
+            this.editTimeModal = true;
+        },
+        closeEditTimeModal() {
+            this.editTimeModal = false;
+            setTimeout(() => {
+                this.activityToEdit = null;
+            }, 300);
+        },
+        saveEditedTime() {
+            if (!this.activityToEdit) return;
+            
+            const datePart = this.activityToEdit.date;
+            const startDateTime = new Date(`${datePart}T${this.editStartTime}`);
+            const endDateTime = new Date(`${datePart}T${this.editEndTime}`);
+            
+            if (endDateTime <= startDateTime) {
+                alert("End time must be after start time");
+                return;
+            }
+            
+            const duration = endDateTime - startDateTime;
+            
+            // Update the activity
+            this.activityToEdit.startTime = startDateTime;
+            this.activityToEdit.endTime = endDateTime;
+            this.activityToEdit.duration = duration;
+            
+            this.closeEditTimeModal();
+        },
+        formatTimeForInput(date) {
+            if (!date) return '';
+            return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+        },
+        selectTaskSuggestion(task) {
+            this.currentActivity.description = task;
+        },
+        toggleTheme() {
+            this.isDarkTheme = !this.isDarkTheme;
+            document.body.classList.toggle('dark-theme', this.isDarkTheme);
         },
         openActivityDetails(activity) {
             this.selectedActivity = activity;
@@ -300,8 +373,16 @@ const app = createApp({
         },
         getProjectName(projectId) {
             const project = this.projects.find(p => p.id === projectId);
-            return project ? project.name : 'No Project';
-        }
+            return project ? project.name : this.t('noProject');
+        },
+        t(key) {
+            return config.translations[this.currentLanguage][key] || key;
+        },
+        changeLanguage(lang) {
+            if (config.translations[lang]) {
+                this.currentLanguage = lang;
+            }
+        },
     }
 });
 
