@@ -28,6 +28,48 @@ body.dark-theme {
     --input-background: #1A2F1A;   /* Dark input background */
 }
 
+body.oceanic-theme {
+    --primary-color: #3498db;      /* Ocean blue */
+    --secondary-color: #e0f7fa;    /* Light blue */
+    --border-color: #b3e5fc;       /* Border blue */
+    --text-color: #0277bd;         /* Text blue */
+    --highlight-color: #4fc3f7;    /* Highlight blue */
+    --deep-green: #01579b;         /* Deep blue */
+    --bg-gradient-1: #e0f7fa;      /* Gradient start */
+    --bg-gradient-2: #b3e5fc;      /* Gradient end */
+    --background-color: #FFF;      /* White background */
+    --modal-background: #FFF;      /* Modal background */
+    --input-background: #FFF;      /* Input background */
+}
+
+body.sunset-theme {
+    --primary-color: #ff7043;      /* Sunset orange */
+    --secondary-color: #fff3e0;    /* Light orange */
+    --border-color: #ffccbc;       /* Border orange */
+    --text-color: #d84315;         /* Text orange */
+    --highlight-color: #ff9e80;    /* Highlight orange */
+    --deep-green: #bf360c;         /* Deep orange */
+    --bg-gradient-1: #fff3e0;      /* Gradient start */
+    --bg-gradient-2: #ffe0b2;      /* Gradient end */
+    --background-color: #FFF;      /* White background */
+    --modal-background: #FFF;      /* Modal background */
+    --input-background: #FFF;      /* Input background */
+}
+
+body.purple-theme {
+    --primary-color: #9c27b0;      /* Purple */
+    --secondary-color: #f3e5f5;    /* Light purple */
+    --border-color: #e1bee7;       /* Border purple */
+    --text-color: #6a1b9a;         /* Text purple */
+    --highlight-color: #ce93d8;    /* Highlight purple */
+    --deep-green: #4a148c;         /* Deep purple */
+    --bg-gradient-1: #f3e5f5;      /* Gradient start */
+    --bg-gradient-2: #e1bee7;      /* Gradient end */
+    --background-color: #FFF;      /* White background */
+    --modal-background: #FFF;      /* Modal background */
+    --input-background: #FFF;      /* Input background */
+}
+
 * {
     margin: 0;
     padding: 0;

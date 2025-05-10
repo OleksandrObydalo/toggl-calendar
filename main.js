@@ -28,6 +28,7 @@ const app = createApp({
             editStartTime: '',
             editEndTime: '',
             isDarkTheme: false,
+            currentTheme: 'light',
             projectModal: false,
             editingProject: null,
             projectForm: {
@@ -390,8 +391,27 @@ const app = createApp({
             this.currentActivity.description = task;
         },
         toggleTheme() {
-            this.isDarkTheme = !this.isDarkTheme;
-            document.body.classList.toggle('dark-theme', this.isDarkTheme);
+            // Remove all theme classes first
+            document.body.classList.remove(
+                'dark-theme', 
+                'oceanic-theme', 
+                'sunset-theme',
+                'purple-theme'
+            );
+            
+            // Rotate through themes
+            const themes = ['light', 'dark-theme', 'oceanic-theme', 'sunset-theme', 'purple-theme'];
+            const currentIndex = themes.indexOf(this.currentTheme);
+            const nextIndex = (currentIndex + 1) % themes.length;
+            this.currentTheme = themes[nextIndex];
+            
+            // Apply the new theme if not light (default)
+            if (this.currentTheme !== 'light') {
+                document.body.classList.add(this.currentTheme);
+            }
+            
+            // Keep backward compatibility with isDarkTheme
+            this.isDarkTheme = this.currentTheme === 'dark-theme';
         },
         openActivityDetails(activity) {
             this.selectedActivity = activity;

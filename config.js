@@ -30,6 +30,13 @@ export const config = {
         day: 'numeric'
     },
     daysToShow: 7, 
+    themes: {
+        light: "light",
+        dark: "dark-theme",
+        oceanic: "oceanic-theme",
+        sunset: "sunset-theme",
+        purple: "purple-theme"
+    },
     translations: {
         en: {
             projects: "Projects",

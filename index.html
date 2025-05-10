@@ -107,7 +107,10 @@
                 </div>
                 <div class="theme-toggle">
                     <button @click="toggleTheme">
-                        {{ isDarkTheme ? t('lightMode') : t('darkMode') }}
+                        {{ currentTheme === 'light' ? t('lightMode') : 
+                           currentTheme === 'dark-theme' ? t('darkMode') : 
+                           currentTheme === 'oceanic-theme' ? 'Oceanic' : 
+                           currentTheme === 'sunset-theme' ? 'Sunset' : 'Purple' }}
                     </button>
                     <div class="language-selector">
                         <button @click="changeLanguage('en')" :class="{ active: currentLanguage === 'en' }">EN</button>
