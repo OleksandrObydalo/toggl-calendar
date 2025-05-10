@@ -80,7 +80,7 @@ const app = createApp({
                 { length: config.workingHours.end - config.workingHours.start + 1 },  
                 (_, i) => i + config.workingHours.start
             ),
-            currentLanguage: 'fr',
+            currentLanguage: 'uk',
             timeGoals: [
                 { id: 1, description: 'Client Project A', targetHours: 20 },
                 { id: 2, description: 'Website Redesign', targetHours: 15 },
