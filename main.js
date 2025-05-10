@@ -317,13 +317,36 @@ const app = createApp({
             const top = ((startHour - config.workingHours.start) * 60) + startMinutes;
             const height = durationInMinutes;
             
+            // Find overlapping activities and calculate the position
+            const dayActivities = this.getActivitiesForDay(new Date(activity.startTime));
+            const overlappingActivities = dayActivities.filter(act => 
+                act.id !== activity.id && 
+                ((act.startTime <= activity.startTime && act.endTime > activity.startTime) ||
+                 (act.startTime < activity.endTime && act.endTime >= activity.endTime) ||
+                 (activity.startTime <= act.startTime && activity.endTime > act.startTime))
+            );
+            
+            // Calculate left position based on index in overlapping activities
+            let leftPercentage = 5; // Default left position
+            let widthPercentage = 90; // Default width
+            
+            if (overlappingActivities.length > 0) {
+                const totalOverlapping = overlappingActivities.length + 1; // Include current activity
+                widthPercentage = 90 / totalOverlapping;
+                
+                // Find position index of this activity among overlapping ones
+                const sortedActivities = [...overlappingActivities, activity].sort((a, b) => a.id - b.id);
+                const positionIndex = sortedActivities.findIndex(act => act.id === activity.id);
+                leftPercentage = 5 + (positionIndex * widthPercentage);
+            }
+            
             return {
                 top: `${top}px`,
                 height: `${height}px`,
                 position: 'absolute',
                 backgroundColor: this.getProjectColor(activity.projectId),
-                width: '90%',
-                left: '5%'
+                width: `${widthPercentage}%`,
+                left: `${leftPercentage}%`
             };
         },
         openEditTimeModal(activity) {
