@@ -294,7 +294,8 @@ const app = createApp({
             const localeMap = {
                 'en': 'en-US',
                 'uk': 'uk-UA',
-                'fr': 'fr-FR'
+                'fr': 'fr-FR',
+                'de': 'de-DE'
             };
             
             return targetDate.toLocaleDateString(localeMap[this.currentLanguage] || 'en-US', options);
@@ -531,7 +532,14 @@ const app = createApp({
         },
         formatDateTime(date) {
             if (!date) return '';
-            return date.toLocaleString('fr-FR', {
+            // Map language codes to locale strings
+            const localeMap = {
+                'en': 'en-US',
+                'uk': 'uk-UA',
+                'fr': 'fr-FR',
+                'de': 'de-DE'
+            };
+            return date.toLocaleString(localeMap[this.currentLanguage] || 'en-US', {
                 ...config.dateFormat,
                 ...config.timeFormat
             });
